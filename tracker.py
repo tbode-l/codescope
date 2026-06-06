@@ -184,6 +184,9 @@ def main():
         known[full_name] = {
             "status": "NEW",
             "stars": stars,
+            "forks": repo.get("forks_count", 0),
+            "open_issues": repo.get("open_issues_count", 0),
+            "updated_at": repo.get("updated_at", ""),
             "language": repo.get("language", ""),
             "description": repo.get("description", ""),
             "readme_path": os.path.relpath(readme_path, BASE_DIR),

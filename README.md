@@ -13,7 +13,8 @@ python engine.py
 
 ## 前置要求
 
-- Python 3.8+（罗坚部分仅用标准库；visualizer 需要 `pip install matplotlib`）
+- **Python 3.8+**
+- **pip install -r requirements.txt**（只需安装 matplotlib）
 - 网络能访问 `api.github.com` 和 `raw.githubusercontent.com`
 
 ## 目录结构
@@ -95,6 +96,7 @@ python visualizer.py   # 仅出图  （需先跑 scorer）
 
 ## 相关文档
 
-- 产品设计：[competitor-tool-for-course-report.md](../spec/competitor-tool-for-course-report.md)
-- 接口契约：[codescope-接口契约.md](../spec/codescope-接口契约.md)
-- 论文草稿：[CodeScope-论文草稿.md](../spec/CodeScope-论文草稿.md)
+- 产品设计：[py作业总体规划.md](文档/py作业总体规划.md)
+- 接口契约：[codescope-接口契约.md](文档/codescope-接口契约.md)
+- 评分规则：[评分规则.md](文档/评分规则.md)
+- visualizer问题报告：[codescope-visualizer问题报告.md](文档/codescope-visualizer问题报告.md)

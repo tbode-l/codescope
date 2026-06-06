@@ -22,6 +22,7 @@ TECH_PATTERNS = {
     "java": [r"\bmaven\b", r"\bgradle\b", r"\.jar\b", r"pom\.xml"],
     "c": [r"\bcmake\b", r"\bmakefile\b", r"\.c\b", r"\.h\b"],
     "ruby": [r"\bruby\b", r"\bgem\s+(install|build)", r"\bbundle\s+install\b", r"\.rb\b"],
+    "shell": [r"\bbash\b", r"\bsh\b", r"\.sh\b", r"\bshell\s+script\b", r"\bsed\b", r"\bawk\b"],
 }
 
 # 产品形态：只匹配明确的自描述，而非 README 任何位置的泛词
@@ -63,25 +64,29 @@ def read_readme(readme_path):
 
 def detect_tech_stack(readme_text, github_language):
     text_lower = readme_text.lower()
-    found = []
 
+    primary = github_language.lower() if github_language else ""
+    if primary not in TECH_PATTERNS:
+        return [primary] if primary else []
+
+    result = [primary]
+
+    candidates = []
     for tech, patterns in TECH_PATTERNS.items():
+        if tech == primary:
+            continue
         match_count = 0
         for p in patterns:
             if re.search(p, text_lower):
                 match_count += 1
-        if match_count >= 2:
-            found.append(tech)
+        if match_count >= 3:
+            candidates.append((tech, match_count))
 
-    # 用 GitHub 标注的语言兜底
-    if github_language and github_language.lower() in TECH_PATTERNS:
-        gl = github_language.lower()
-        if gl == "typescript":
-            gl = "typescript"
-        if gl not in found:
-            found.append(gl)
+    candidates.sort(key=lambda x: x[1], reverse=True)
+    if candidates:
+        result.append(candidates[0][0])
 
-    return found if found else ([github_language.lower()] if github_language else [])
+    return result
 
 
 def detect_product_form(text):
@@ -121,6 +126,11 @@ def estimate_doc_completeness(text):
     return score
 
 
+def save_known(known):
+    with open(KNOWN_FILE, "w", encoding="utf-8", errors="replace") as f:
+        json.dump(known, f, ensure_ascii=False, indent=2)
+
+
 def extract_features():
     known = load_known()
     if not known:
@@ -138,6 +148,9 @@ def extract_features():
         features = {
             "repo": repo_name,
             "stars": repo_info.get("stars", 0),
+            "forks": repo_info.get("forks", 0),
+            "open_issues": repo_info.get("open_issues", 0),
+            "updated_at": repo_info.get("updated_at", ""),
             "language": github_language,
             "description": repo_info.get("description", ""),
             "tech_stack": detect_tech_stack(readme_text, github_language),
@@ -145,6 +158,7 @@ def extract_features():
             "install_complexity": estimate_install_complexity(readme_text),
             "doc_completeness": estimate_doc_completeness(readme_text),
             "readme_length": len(readme_text),
+            "readme_path": repo_info.get("readme_path", ""),
         }
         results.append(features)
         print(
@@ -167,6 +181,16 @@ def save_analysis(results):
 def main():
     results = extract_features()
     save_analysis(results)
+
+    known = load_known()
+    changed = 0
+    for repo_name, repo_info in known.items():
+        if repo_info.get("status") == "NEW":
+            known[repo_name]["status"] = "ANALYZED"
+            changed += 1
+    if changed > 0:
+        save_known(known)
+
     print(f"[分析完成] 共分析 {len(results)} 个仓库", file=sys.stderr)
     print(len(results))
 

@@ -1,0 +1,4 @@
+# CodeScope 依赖清单
+# 安装命令：pip install -r requirements.txt
+
+matplotlib>=3.7.0

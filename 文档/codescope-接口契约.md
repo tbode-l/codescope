@@ -51,7 +51,7 @@ analyzer.py ──→ analysis.json ──────────→ scorer.py 
 
 ### `tech_stack` 可选值
 
-`go` | `rust` | `python` | `javascript` | `typescript` | `java` | `c` | `ruby`
+`go` | `rust` | `python` | `javascript` | `typescript` | `java` | `c` | `ruby` | `shell`
 
 > 每个工具通常只有 1-2 个值。数组非空，如果无法检测则退回 `[language 字段的小写值]`。
 
@@ -98,9 +98,9 @@ analyzer.py ──→ analysis.json ──────────→ scorer.py 
 
 洪锋烨如果需要直接查看原始 README，可按 `readme_path` 读取本地文件。
 
-## scores.json 格式约定（建议，由洪锋烨决定）
+## scores.json 格式约定（由评分规则.md确定）
 
-以下为建议格式，洪锋烨可根据评分模型设计自行调整：
+实际格式（由评分规则.md确定，使用0-100分制）：
 
 ```json
 [
@@ -118,7 +118,7 @@ analyzer.py ──→ analysis.json ──────────→ scorer.py 
 ]
 ```
 
-> `overall` 和 `scores.*` 均为 0-1 之间的浮点数。
+> `overall` 和 `scores.*` 均为 **0-100 之间的浮点数**。
 
 ## 输出文件目录约定
 
