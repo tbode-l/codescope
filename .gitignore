@@ -1,0 +1,7 @@
+__pycache__/
+raw_data/
+known_competitors.json
+analysis.json
+scores.json
+output/
+*.pyc

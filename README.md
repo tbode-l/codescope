@@ -1,0 +1,100 @@
+# CodeScope
+
+GitHub 代码增强工具自动化竞品分析系统。输入关键词，自动搜索同类工具、提取特征、评分排名、输出可视化报告。纯 Python 实现。
+
+## 快速开始
+
+```powershell
+cd codescope
+python engine.py
+```
+
+四步流水线依次执行，已下载的仓库自动跳过，重复运行只分析新增工具。
+
+## 前置要求
+
+- Python 3.8+（罗坚部分仅用标准库；visualizer 需要 `pip install matplotlib`）
+- 网络能访问 `api.github.com` 和 `raw.githubusercontent.com`
+
+## 目录结构
+
+```
+codescope/
+├── engine.py              # 主控（四步流水线）
+├── tracker.py             # 罗坚：搜索 + 下载 README
+├── analyzer.py            # 罗坚：特征提取
+├── scorer.py              # 洪锋烨：五维评分
+├── visualizer.py          # 洪锋烨：Matplotlib 图表
+├── config.json            # 搜索关键词 / Token / 上限
+│
+├── raw_data/              # 自动生成：下载的 README
+├── known_competitors.json # 自动生成：已追踪仓库
+├── analysis.json          # 自动生成：特征分析（→ 契约文件）
+├── scores.json            # 自动生成：评分结果
+└── output/                # 自动生成：雷达图 / 散点图 / 柱状图
+```
+
+## 流水线
+
+| 步骤 | 模块 | 职责 | 负责人 |
+|:--:|------|------|:----:|
+| 1 | `tracker.py` | GitHub Search API 搜索 + 去重 + 下载 README | 罗坚 |
+| 2 | `analyzer.py` | 读 README，提取技术栈、产品形态、安装复杂度、文档完整度 | 罗坚 |
+| 3 | `scorer.py` | 五维评分：活跃度、技术先进性、文档完整度、接入门槛、生态开放性 | 洪锋烨 |
+| 4 | `visualizer.py` | 雷达图 + 散点图 + 柱状图 + 终端排名报告（Matplotlib） | 洪锋烨 |
+
+```
+tracker ──→ known_competitors.json + raw_data/
+    ↓
+analyzer ──→ analysis.json  ← 模块间唯一契约
+    ↓
+scorer ──→ scores.json
+    ↓
+visualizer ──→ output/*.png
+```
+
+> scorer / visualizer 尚在开发中，未实现时 engine 会自动跳过并提示。
+
+## 配置文件
+
+`config.json` 中可自由调整，无需改代码：
+
+| 字段 | 说明 |
+|------|------|
+| `search_queries` | GitHub Search API 查询列表，遵循 [API 语法](https://docs.github.com/en/search-github/searching-on-github/searching-for-repositories) |
+| `max_per_query` | 单次搜索返回上限（最大 100） |
+| `total_download_limit` | 本次最多下载几个新仓库 |
+| `github_token` | GitHub PAT（留空则尝试环境变量 `GITHUB_TOKEN`，再留空则未认证运行） |
+
+### Token 配置（推荐）
+
+1. GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens
+2. 权限勾选 `public_repo`（只读即可）
+3. 填入 `config.json` 或设环境变量 `$env:GITHUB_TOKEN="ghp_xxxx"`
+
+| 认证状态 | 搜索限额 | API 限额 |
+|:---|:---:|:---:|
+| 未认证 | 10 次/分钟 | 60 次/小时 |
+| 已认证 | 30 次/分钟 | 5000 次/小时 |
+
+## 单独运行
+
+```powershell
+python tracker.py      # 仅搜索下载
+python analyzer.py     # 仅分析（需先跑 tracker）
+python scorer.py       # 仅评分  （需先跑 analyzer）
+python visualizer.py   # 仅出图  （需先跑 scorer）
+```
+
+## 分工
+
+| 成员 | 负责 |
+|------|------|
+| 罗坚 | tracker.py + analyzer.py + engine.py + 论文全文 |
+| 洪锋烨 | scorer.py + visualizer.py + PPT |
+
+## 相关文档
+
+- 产品设计：[competitor-tool-for-course-report.md](../spec/competitor-tool-for-course-report.md)
+- 接口契约：[codescope-接口契约.md](../spec/codescope-接口契约.md)
+- 论文草稿：[CodeScope-论文草稿.md](../spec/CodeScope-论文草稿.md)

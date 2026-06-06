@@ -1,0 +1,12 @@
+{
+    "search_queries": [
+        "code enhancement tool github stars:>30",
+        "code analysis tool cli stars:>30",
+        "static analysis code review tool stars:>30",
+        "code quality improvement tool stars:>30",
+        "code refactoring automated tool stars:>30"
+    ],
+    "github_token": "",
+    "max_per_query": 30,
+    "total_download_limit": 50
+}
