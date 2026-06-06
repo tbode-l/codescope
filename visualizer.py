@@ -134,7 +134,7 @@ def plot_radar(items: list[dict[str, Any]], output: Path) -> Path:
     ax.set_theta_direction(-1)
 
     for idx, item in enumerate(top):
-        values = [_get_scores(item)[key] for key in DIMENSIONS[:-1]]
+        values = [_get_scores(item)[key] for key in DIMENSIONS]
         values += values[:1]
         name = _get_name(item, idx + 1)
         ax.plot(angles, values, linewidth=1.8, label=name)
@@ -152,7 +152,7 @@ def plot_radar(items: list[dict[str, Any]], output: Path) -> Path:
     return output
 
 
-def generate_charts(scores_path: str | Path, output_dir: str | Path = "charts") -> list[Path]:
+def generate_charts(scores_path: str | Path, output_dir: str | Path = "output") -> list[Path]:
     items = _sorted_items(load_scores(scores_path))
     out_dir = _ensure_dir(output_dir)
     outputs = [
@@ -166,12 +166,8 @@ def generate_charts(scores_path: str | Path, output_dir: str | Path = "charts") 
 
 def main(argv: list[str] | None = None) -> int:
     argv = argv or sys.argv[1:]
-    if not argv:
-        print("Usage: python visualizer.py scores.json [output_dir]", file=sys.stderr)
-        return 1
-
-    scores_path = argv[0]
-    output_dir = argv[1] if len(argv) > 1 else "charts"
+    scores_path = argv[0] if len(argv) >= 1 else "scores.json"
+    output_dir = argv[1] if len(argv) >= 2 else "output"
     outputs = generate_charts(scores_path, output_dir)
     for path in outputs:
         print(path)
