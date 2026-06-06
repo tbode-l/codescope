@@ -303,12 +303,8 @@ def save_scores(path: str | Path, payload: list[dict[str, Any]]) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     argv = argv or sys.argv[1:]
-    if not argv:
-        print("Usage: python scorer.py input.json [output.json]", file=sys.stderr)
-        return 1
-
-    input_path = argv[0]
-    output_path = argv[1] if len(argv) > 1 else "scores.json"
+    input_path = argv[0] if len(argv) >= 1 else "analysis.json"
+    output_path = argv[1] if len(argv) >= 2 else "scores.json"
 
     scorer = Scorer()
     repos = load_repos(input_path)
