@@ -1,9 +1,8 @@
 __pycache__/
-raw_data/
-data/
-known_competitors.json
-analysis.json
-scores.json
-output/
 *.pyc
 charts/
+output/
+raw_data/
+data/scores.json
+data/known_competitors.json
+data/analysis.json

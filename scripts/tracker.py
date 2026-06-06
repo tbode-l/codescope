@@ -10,8 +10,9 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 CONFIG_FILE = "config.json"
-KNOWN_FILE = "known_competitors.json"
+KNOWN_FILE = "data/known_competitors.json"
 RAW_DIR = "raw_data"
+SKIPPED_FILE = "data/skipped_repos.json"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(BASE_DIR)
 
@@ -50,7 +51,7 @@ def _ssl_context():
 
 
 def load_config():
-    path = os.path.join(PROJECT_DIR, CONFIG_FILE)
+    path = resolve_path(CONFIG_FILE)
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -101,6 +102,15 @@ def save_known(data, known_file):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8", errors="replace") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def load_skipped():
+    """加载黑名单，固定在 data/ 目录"""
+    path = resolve_path(SKIPPED_FILE)
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
 
 
 def download_readme(owner, repo, raw_data_dir):
@@ -154,6 +164,7 @@ def main():
     token = config.get("github_token", "") or os.getenv("GITHUB_TOKEN") or ""
 
     known = load_known(paths["known_competitors"])
+    skipped = load_skipped()
 
     all_items = []
     for query in queries:
@@ -168,12 +179,15 @@ def main():
     unique = []
     filtered = 0
     for repo in all_items:
-        name = repo["full_name"]
-        if name in seen:
+        full_name = repo["full_name"]
+        if full_name in seen:
             continue
-        seen.add(name)
+        seen.add(full_name)
         if not is_relevant(repo):
             filtered += 1
+            continue
+        if full_name in skipped:
+            print(f"[黑名单] 跳过 {full_name}", file=sys.stderr)
             continue
         unique.append(repo)
 

@@ -8,12 +8,30 @@ sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(BASE_DIR)
-CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
+CONFIG_FILE = "config.json"
+SKIPPED_FILE = "data/skipped_repos.json"
 
 DEFAULT_PATHS = {
-    "known_competitors": "known_competitors.json",
-    "analysis": "analysis.json",
+    "known_competitors": "data/known_competitors.json",
+    "analysis": "data/analysis.json",
 }
+
+# 垃圾仓库黑名单关键词（仅匹配仓库名和描述，不匹配 README 内容）
+# 只匹配完全的垃圾仓库（机器人比赛、课程作业、教程、数据集、论文代码等）
+SKIPPED_KEYWORDS = [
+    "FTC", "robotics", "robot", "competition",
+    "portfolio", "awesome list", "roadmap",
+    "interview", "bootcamp", "course", "tutorial", "homework",
+    "assignment", "cheatsheet", "whitepaper",
+    "malware", "ransomware", "payload", "exploit",
+    "crack", "hack", "pastebin", "keylogger",
+    "basic programs", "hello world", "helloy",
+    "dataset", "research dataset", "qa dataset", "question answering",
+    "cvpr", "acl", "naacl", "emnlp", "neurips", "icml",
+    "paper", "research paper", "arXiv",
+    "chatbot", "simple chatbot", "sample chatbot",
+    "game tool", "game mod", "hytale", "minecraft",
+]
 
 # 技术栈关键词：只匹配具体技术指标，而非泛泛提及
 # 比如 "python" 会匹配 "python3", "python script", "python implementation" 但不够精准
@@ -53,9 +71,9 @@ INSTALL_COMPLEXITY_PATTERNS = [
 
 
 def load_config():
-    root_config = os.path.join(PROJECT_DIR, "config.json")
-    if os.path.exists(root_config):
-        with open(root_config, "r", encoding="utf-8") as f:
+    path = resolve_path(CONFIG_FILE)
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     return {}
 
@@ -160,12 +178,45 @@ def save_known(known, known_file):
         json.dump(known, f, ensure_ascii=False, indent=2)
 
 
+def load_skipped():
+    path = resolve_path(SKIPPED_FILE)
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+
+def save_skipped(skipped):
+    path = os.path.join(PROJECT_DIR, SKIPPED_FILE)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(skipped, f, ensure_ascii=False, indent=2)
+
+
+def is_garbage_repo(repo_name, description, readme_text):
+    """只匹配仓库名和描述，不匹配 README 内容（避免误判）"""
+    text_lower = f"{repo_name.lower()} {description.lower()}"
+    for kw in SKIPPED_KEYWORDS:
+        kw_lower = kw.lower()
+        # 两种匹配策略：
+        # 1. 关键词本身是一个单词（比如 "FTC"、"robot"）：作为完整词匹配
+        if " " not in kw_lower:
+            # 检查是否作为完整词出现（前后是非字母/数字字符或边界）
+            import re
+            if re.search(r"\b" + re.escape(kw_lower) + r"\b", text_lower):
+                return kw
+        # 2. 关键词是短语（比如 "awesome list"、"hello world"）：作为子字符串匹配
+        elif kw_lower in text_lower:
+            return kw
+    return None
+
+
 def extract_features(known_file):
     known = load_known(known_file)
     if not known:
         print("[分析] 没有待分析的仓库", file=sys.stderr)
         return []
 
+    skipped = load_skipped()
     results = []
     for repo_name, repo_info in known.items():
         if repo_info.get("status") != "NEW":
@@ -173,6 +224,21 @@ def extract_features(known_file):
 
         readme_text = read_readme(repo_info.get("readme_path", ""))
         github_language = repo_info.get("language", "")
+        description = repo_info.get("description", "")
+
+        # 自动垃圾仓库检测，加入黑名单
+        garbage_reason = is_garbage_repo(repo_name, description, readme_text)
+        if garbage_reason:
+            if repo_name not in skipped:
+                skipped[repo_name] = {
+                    "reason": f"检测到关键词：{garbage_reason}",
+                    "skipped_at": "2026-06-06"
+                }
+                save_skipped(skipped)
+                print(f"[黑名单] 自动加入 {repo_name}（原因：{garbage_reason}）", file=sys.stderr)
+            else:
+                print(f"[黑名单] 已存在 {repo_name}，跳过", file=sys.stderr)
+            continue  # 不加入 analysis.json
 
         features = {
             "repo": repo_name,

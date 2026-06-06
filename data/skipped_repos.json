@@ -1,0 +1,26 @@
+{
+  "google-research-datasets/tydiqa": {
+    "reason": "检测到关键词：dataset",
+    "skipped_at": "2026-06-06"
+  },
+  "martiansideofthemoon/squash-generation": {
+    "reason": "检测到关键词：acl",
+    "skipped_at": "2026-06-06"
+  },
+  "logan-mcduffie/Hytale-Toolkit": {
+    "reason": "检测到关键词：hytale",
+    "skipped_at": "2026-06-06"
+  },
+  "martiansideofthemoon/hurdles-longform-qa": {
+    "reason": "检测到关键词：question answering",
+    "skipped_at": "2026-06-06"
+  },
+  "VirajMadhu/OpenAIChatBot": {
+    "reason": "检测到关键词：chatbot",
+    "skipped_at": "2026-06-06"
+  },
+  "google-research-datasets/MultiReQA": {
+    "reason": "检测到关键词：qa dataset",
+    "skipped_at": "2026-06-06"
+  }
+}
