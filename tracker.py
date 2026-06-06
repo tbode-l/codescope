@@ -14,6 +14,11 @@ KNOWN_FILE = "known_competitors.json"
 RAW_DIR = "raw_data"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+DEFAULT_PATHS = {
+    "known_competitors": KNOWN_FILE,
+    "raw_data_dir": RAW_DIR,
+}
+
 DEFAULT_QUERIES = [
     "code enhancement tool github stars:>30",
     "code analysis tool cli stars:>30",
@@ -51,6 +56,19 @@ def load_config():
     return {}
 
 
+def resolve_path(path):
+    if os.path.isabs(path):
+        return path
+    return os.path.join(BASE_DIR, path)
+
+
+def get_paths(config):
+    configured = config.get("paths", {})
+    paths = dict(DEFAULT_PATHS)
+    paths.update({k: v for k, v in configured.items() if v})
+    return paths
+
+
 def _api_get(url, token):
     req = urllib.request.Request(url)
     req.add_header("Accept", "application/vnd.github+json")
@@ -69,21 +87,22 @@ def search_github(query, max_per_query, token):
     return _api_get(url, token).get("items", [])
 
 
-def load_known():
-    path = os.path.join(BASE_DIR, KNOWN_FILE)
+def load_known(known_file):
+    path = resolve_path(known_file)
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     return {}
 
 
-def save_known(data):
-    path = os.path.join(BASE_DIR, KNOWN_FILE)
+def save_known(data, known_file):
+    path = resolve_path(known_file)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8", errors="replace") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def download_readme(owner, repo):
+def download_readme(owner, repo, raw_data_dir):
     readme_text = None
     last_error = None
     ctx = _ssl_context()
@@ -101,7 +120,7 @@ def download_readme(owner, repo):
     if readme_text is None:
         raise RuntimeError(f"{last_error}" if last_error else "无 README")
 
-    raw_dir = os.path.join(BASE_DIR, RAW_DIR)
+    raw_dir = resolve_path(raw_data_dir)
     os.makedirs(raw_dir, exist_ok=True)
     filename = f"{owner}_{repo}_README.md"
     filepath = os.path.join(raw_dir, filename)
@@ -125,6 +144,7 @@ def is_relevant(repo):
 
 def main():
     config = load_config()
+    paths = get_paths(config)
 
     queries = config.get("search_queries", DEFAULT_QUERIES)
     max_per_query = config.get("max_per_query", DEFAULT_MAX_PER_QUERY)
@@ -132,7 +152,7 @@ def main():
 
     token = config.get("github_token", "") or os.getenv("GITHUB_TOKEN") or ""
 
-    known = load_known()
+    known = load_known(paths["known_competitors"])
 
     all_items = []
     for query in queries:
@@ -176,7 +196,7 @@ def main():
 
         owner, repo_name = full_name.split("/", 1)
         try:
-            readme_path = download_readme(owner, repo_name)
+            readme_path = download_readme(owner, repo_name, paths["raw_data_dir"])
         except Exception as e:
             print(f"[下载失败] {full_name}: {e}", file=sys.stderr)
             continue
@@ -194,7 +214,7 @@ def main():
         print(f"[已下载] -> {readme_path}", file=sys.stderr)
         new_count += 1
 
-    save_known(known)
+    save_known(known, paths["known_competitors"])
     total_known = len(known)
     print(f"[统计] 已追踪 {total_known} 个仓库，其中 NEW={new_count}", file=sys.stderr)
     print(new_count)

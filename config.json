@@ -8,5 +8,18 @@
     ],
     "github_token": "",
     "max_per_query": 30,
-    "total_download_limit": 50
+    "total_download_limit": 50,
+    "paths": {
+        "known_competitors": "data/known_competitors.json",
+        "raw_data_dir": "data/raw_data",
+        "analysis": "data/analysis.json",
+        "scores": "data/scores.json",
+        "output_dir": "output"
+    },
+    "scoring_weights": {
+        "attention": 25,
+        "tech_advancement": 30,
+        "setup_product": 30,
+        "ecosystem_openness": 15
+    }
 }

@@ -1,5 +1,6 @@
 __pycache__/
 raw_data/
+data/
 known_competitors.json
 analysis.json
 scores.json

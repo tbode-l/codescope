@@ -7,8 +7,12 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-KNOWN_FILE = os.path.join(BASE_DIR, "known_competitors.json")
-ANALYSIS_FILE = os.path.join(BASE_DIR, "analysis.json")
+CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
+
+DEFAULT_PATHS = {
+    "known_competitors": "known_competitors.json",
+    "analysis": "analysis.json",
+}
 
 # 技术栈关键词：只匹配具体技术指标，而非泛泛提及
 # 比如 "python" 会匹配 "python3", "python script", "python implementation" 但不够精准
@@ -47,9 +51,30 @@ INSTALL_COMPLEXITY_PATTERNS = [
 ]
 
 
-def load_known():
-    if os.path.exists(KNOWN_FILE):
-        with open(KNOWN_FILE, "r", encoding="utf-8") as f:
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+
+def resolve_path(path):
+    if os.path.isabs(path):
+        return path
+    return os.path.join(BASE_DIR, path)
+
+
+def get_paths(config):
+    configured = config.get("paths", {})
+    paths = dict(DEFAULT_PATHS)
+    paths.update({k: v for k, v in configured.items() if v})
+    return paths
+
+
+def load_known(known_file):
+    path = resolve_path(known_file)
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     return {}
 
@@ -126,13 +151,15 @@ def estimate_doc_completeness(text):
     return score
 
 
-def save_known(known):
-    with open(KNOWN_FILE, "w", encoding="utf-8", errors="replace") as f:
+def save_known(known, known_file):
+    path = resolve_path(known_file)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8", errors="replace") as f:
         json.dump(known, f, ensure_ascii=False, indent=2)
 
 
-def extract_features():
-    known = load_known()
+def extract_features(known_file):
+    known = load_known(known_file)
     if not known:
         print("[分析] 没有待分析的仓库", file=sys.stderr)
         return []
@@ -173,23 +200,28 @@ def extract_features():
     return results
 
 
-def save_analysis(results):
-    with open(ANALYSIS_FILE, "w", encoding="utf-8", errors="replace") as f:
+def save_analysis(results, analysis_file):
+    path = resolve_path(analysis_file)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8", errors="replace") as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
 
 
 def main():
-    results = extract_features()
-    save_analysis(results)
+    config = load_config()
+    paths = get_paths(config)
 
-    known = load_known()
+    results = extract_features(paths["known_competitors"])
+    save_analysis(results, paths["analysis"])
+
+    known = load_known(paths["known_competitors"])
     changed = 0
     for repo_name, repo_info in known.items():
         if repo_info.get("status") == "NEW":
             known[repo_name]["status"] = "ANALYZED"
             changed += 1
     if changed > 0:
-        save_known(known)
+        save_known(known, paths["known_competitors"])
 
     print(f"[分析完成] 共分析 {len(results)} 个仓库", file=sys.stderr)
     print(len(results))

@@ -1,0 +1,536 @@
+diff --git a/.gitignore b/.gitignore
+index 878afdf..18cb2a9 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1,8 +1,9 @@
+ __pycache__/
+ raw_data/
++data/
+ known_competitors.json
+ analysis.json
+ scores.json
+ output/
+ *.pyc
+-charts/
+\ No newline at end of file
++charts/
+diff --git a/README.md b/README.md
+index 4dfa12e..611c44a 100644
+--- a/README.md
++++ b/README.md
+@@ -24,14 +24,15 @@ codescope/
+ ├── engine.py              # 主控（四步流水线）
+ ├── tracker.py             # 罗坚：搜索 + 下载 README
+ ├── analyzer.py            # 罗坚：特征提取
+-├── scorer.py              # 洪锋烨：五维评分
++├── scorer.py              # 洪锋烨：四维评分
+ ├── visualizer.py          # 洪锋烨：Matplotlib 图表
+ ├── config.json            # 搜索关键词 / Token / 上限
+ │
+-├── raw_data/              # 自动生成：下载的 README
+-├── known_competitors.json # 自动生成：已追踪仓库
+-├── analysis.json          # 自动生成：特征分析（→ 契约文件）
+-├── scores.json            # 自动生成：评分结果
++├── data/                  # 自动生成：JSON 数据和下载的 README
++│   ├── raw_data/          # 自动生成：下载的 README
++│   ├── known_competitors.json
++│   ├── analysis.json      # 特征分析（→ 契约文件）
++│   └── scores.json        # 评分结果
+ └── output/                # 自动生成：雷达图 / 散点图 / 柱状图
+ ```
+ 
+@@ -41,15 +42,15 @@ codescope/
+ |:--:|------|------|:----:|
+ | 1 | `tracker.py` | GitHub Search API 搜索 + 去重 + 下载 README | 罗坚 |
+ | 2 | `analyzer.py` | 读 README，提取技术栈、产品形态、安装复杂度、文档完整度 | 罗坚 |
+-| 3 | `scorer.py` | 五维评分：活跃度、技术先进性、文档完整度、接入门槛、生态开放性 | 洪锋烨 |
++| 3 | `scorer.py` | 四维评分：关注度、技术先进性、配置门槛与产品形态、生态开放性 | 洪锋烨 |
+ | 4 | `visualizer.py` | 雷达图 + 散点图 + 柱状图 + 终端排名报告（Matplotlib） | 洪锋烨 |
+ 
+ ```
+-tracker ──→ known_competitors.json + raw_data/
++tracker ──→ data/known_competitors.json + data/raw_data/
+     ↓
+-analyzer ──→ analysis.json  ← 模块间唯一契约
++analyzer ──→ data/analysis.json  ← 模块间唯一契约
+     ↓
+-scorer ──→ scores.json
++scorer ──→ data/scores.json
+     ↓
+ visualizer ──→ output/*.png
+ ```
+@@ -66,6 +67,48 @@ visualizer ──→ output/*.png
+ | `max_per_query` | 单次搜索返回上限（最大 100） |
+ | `total_download_limit` | 本次最多下载几个新仓库 |
+ | `github_token` | GitHub PAT（留空则尝试环境变量 `GITHUB_TOKEN`，再留空则未认证运行） |
++| `paths` | 生成文件路径，方便分类保存 JSON、README 和图表 |
++| `scoring_weights` | 评分权重，可按自己的偏好调整 |
++
++### 自定义文件路径
++
++CodeScope 默认把运行数据放到 `data/`，图表放到 `output/`。如果想换目录，只需要修改 `config.json`：
++
++```json
++"paths": {
++    "known_competitors": "data/known_competitors.json",
++    "raw_data_dir": "data/raw_data",
++    "analysis": "data/analysis.json",
++    "scores": "data/scores.json",
++    "output_dir": "output"
++}
++```
++
++这样 JSON、README、图表的路径都由配置统一管理，不需要修改脚本代码。
++
++### 自定义评分权重
++
++CodeScope 默认用四个维度给工具打分。用户可以直接修改 `config.json` 里的 `scoring_weights`，让排序更贴近自己的需求。
++
++```json
++"scoring_weights": {
++    "attention": 25,
++    "tech_advancement": 30,
++    "setup_product": 30,
++    "ecosystem_openness": 15
++}
++```
++
++字段含义：
++
++| 字段 | 含义 | 适合提高权重的场景 |
++|------|------|------|
++| `attention` | 关注度，主要看 stars 等热度指标 | 想优先找成熟、热门工具 |
++| `tech_advancement` | 技术先进性 | 想找新技术、Agent、RAG、插件化能力强的工具 |
++| `setup_product` | 配置门槛与产品形态 | 想找更容易安装、能直接使用的工具 |
++| `ecosystem_openness` | 生态开放性 | 想找方便扩展、二次开发、接入 API/SDK 的工具 |
++
++权重不要求加起来正好等于 `100`，程序会自动归一化。例如只关心易用性，可以把 `setup_product` 调高；只关心热门程度，可以把 `attention` 调高。
+ 
+ ### Token 配置（推荐）
+ 
+@@ -99,4 +142,4 @@ python visualizer.py   # 仅出图  （需先跑 scorer）
+ - 产品设计：[py作业总体规划.md](文档/py作业总体规划.md)
+ - 接口契约：[codescope-接口契约.md](文档/codescope-接口契约.md)
+ - 评分规则：[评分规则.md](文档/评分规则.md)
+-- visualizer问题报告：[codescope-visualizer问题报告.md](文档/codescope-visualizer问题报告.md)
+\ No newline at end of file
++- visualizer问题报告：[codescope-visualizer问题报告.md](文档/codescope-visualizer问题报告.md)
+diff --git a/analyzer.py b/analyzer.py
+index b5245d4..47afc4d 100644
+--- a/analyzer.py
++++ b/analyzer.py
+@@ -7,8 +7,12 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+ sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+ 
+ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+-KNOWN_FILE = os.path.join(BASE_DIR, "known_competitors.json")
+-ANALYSIS_FILE = os.path.join(BASE_DIR, "analysis.json")
++CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
++
++DEFAULT_PATHS = {
++    "known_competitors": "known_competitors.json",
++    "analysis": "analysis.json",
++}
+ 
+ # 技术栈关键词：只匹配具体技术指标，而非泛泛提及
+ # 比如 "python" 会匹配 "python3", "python script", "python implementation" 但不够精准
+@@ -47,9 +51,30 @@ INSTALL_COMPLEXITY_PATTERNS = [
+ ]
+ 
+ 
+-def load_known():
+-    if os.path.exists(KNOWN_FILE):
+-        with open(KNOWN_FILE, "r", encoding="utf-8") as f:
++def load_config():
++    if os.path.exists(CONFIG_FILE):
++        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
++            return json.load(f)
++    return {}
++
++
++def resolve_path(path):
++    if os.path.isabs(path):
++        return path
++    return os.path.join(BASE_DIR, path)
++
++
++def get_paths(config):
++    configured = config.get("paths", {})
++    paths = dict(DEFAULT_PATHS)
++    paths.update({k: v for k, v in configured.items() if v})
++    return paths
++
++
++def load_known(known_file):
++    path = resolve_path(known_file)
++    if os.path.exists(path):
++        with open(path, "r", encoding="utf-8") as f:
+             return json.load(f)
+     return {}
+ 
+@@ -126,13 +151,15 @@ def estimate_doc_completeness(text):
+     return score
+ 
+ 
+-def save_known(known):
+-    with open(KNOWN_FILE, "w", encoding="utf-8", errors="replace") as f:
++def save_known(known, known_file):
++    path = resolve_path(known_file)
++    os.makedirs(os.path.dirname(path), exist_ok=True)
++    with open(path, "w", encoding="utf-8", errors="replace") as f:
+         json.dump(known, f, ensure_ascii=False, indent=2)
+ 
+ 
+-def extract_features():
+-    known = load_known()
++def extract_features(known_file):
++    known = load_known(known_file)
+     if not known:
+         print("[分析] 没有待分析的仓库", file=sys.stderr)
+         return []
+@@ -173,27 +200,32 @@ def extract_features():
+     return results
+ 
+ 
+-def save_analysis(results):
+-    with open(ANALYSIS_FILE, "w", encoding="utf-8", errors="replace") as f:
++def save_analysis(results, analysis_file):
++    path = resolve_path(analysis_file)
++    os.makedirs(os.path.dirname(path), exist_ok=True)
++    with open(path, "w", encoding="utf-8", errors="replace") as f:
+         json.dump(results, f, ensure_ascii=False, indent=2)
+ 
+ 
+ def main():
+-    results = extract_features()
+-    save_analysis(results)
++    config = load_config()
++    paths = get_paths(config)
++
++    results = extract_features(paths["known_competitors"])
++    save_analysis(results, paths["analysis"])
+ 
+-    known = load_known()
++    known = load_known(paths["known_competitors"])
+     changed = 0
+     for repo_name, repo_info in known.items():
+         if repo_info.get("status") == "NEW":
+             known[repo_name]["status"] = "ANALYZED"
+             changed += 1
+     if changed > 0:
+-        save_known(known)
++        save_known(known, paths["known_competitors"])
+ 
+     print(f"[分析完成] 共分析 {len(results)} 个仓库", file=sys.stderr)
+     print(len(results))
+ 
+ 
+ if __name__ == "__main__":
+-    main()
+\ No newline at end of file
++    main()
+diff --git a/config.json b/config.json
+index 6244d06..cbc500f 100644
+--- a/config.json
++++ b/config.json
+@@ -6,7 +6,20 @@
+         "code quality improvement tool stars:>30",
+         "code refactoring automated tool stars:>30"
+     ],
+-    "github_token": "",
+-    "max_per_query": 30,
+-    "total_download_limit": 50
+-}
+\ No newline at end of file
++    "github_token": "",
++    "max_per_query": 30,
++    "total_download_limit": 50,
++    "paths": {
++        "known_competitors": "data/known_competitors.json",
++        "raw_data_dir": "data/raw_data",
++        "analysis": "data/analysis.json",
++        "scores": "data/scores.json",
++        "output_dir": "output"
++    },
++    "scoring_weights": {
++        "attention": 25,
++        "tech_advancement": 30,
++        "setup_product": 30,
++        "ecosystem_openness": 15
++    }
++}
+diff --git a/scorer.py b/scorer.py
+index 6a09d93..cdb5106 100644
+--- a/scorer.py
++++ b/scorer.py
+@@ -123,7 +123,7 @@ class Scorer:
+       - README analysis output: feature flags / counts / textual hints
+     """
+ 
+-    WEIGHTS = {
++    DEFAULT_WEIGHTS = {
+         "attention": 0.25,
+         "tech_advancement": 0.30,
+         "setup_product": 0.30,
+@@ -134,6 +134,23 @@ class Scorer:
+     FORK_SCALE = 10000
+     ISSUE_SCALE = 5000
+ 
++    def __init__(self, weights: dict[str, Any] | None = None) -> None:
++        self.weights = self._normalize_weights(weights or self.DEFAULT_WEIGHTS)
++
++    def _normalize_weights(self, weights: dict[str, Any]) -> dict[str, float]:
++        cleaned = {}
++        for key, default in self.DEFAULT_WEIGHTS.items():
++            try:
++                value = float(weights.get(key, default))
++            except (TypeError, ValueError):
++                value = default
++            cleaned[key] = max(0.0, value)
++
++        total = sum(cleaned.values())
++        if total <= 0:
++            return dict(self.DEFAULT_WEIGHTS)
++        return {key: value / total for key, value in cleaned.items()}
++
+     def score(self, repo: RepoInput | dict[str, Any]) -> dict[str, Any]:
+         item = repo if isinstance(repo, RepoInput) else RepoInput.from_dict(repo)
+         breakdown = self._score_breakdown(item)
+@@ -157,10 +174,10 @@ class Scorer:
+         setup_product = self._score_setup_product(repo)
+         ecosystem_openness = self._score_ecosystem_openness(repo)
+         overall = (
+-            attention * self.WEIGHTS["attention"]
+-            + tech_advancement * self.WEIGHTS["tech_advancement"]
+-            + setup_product * self.WEIGHTS["setup_product"]
+-            + ecosystem_openness * self.WEIGHTS["ecosystem_openness"]
++            attention * self.weights["attention"]
++            + tech_advancement * self.weights["tech_advancement"]
++            + setup_product * self.weights["setup_product"]
++            + ecosystem_openness * self.weights["ecosystem_openness"]
+         )
+         return ScoreBreakdown(attention, tech_advancement, setup_product, ecosystem_openness, overall)
+ 
+@@ -301,12 +318,26 @@ def save_scores(path: str | Path, payload: list[dict[str, Any]]) -> None:
+     Path(path).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+ 
+ 
++def load_config(path: str | Path = "config.json") -> dict[str, Any]:
++    config_path = Path(path)
++    if not config_path.exists():
++        config_path = Path(__file__).with_name("config.json")
++    if not config_path.exists():
++        return {}
++    return json.loads(config_path.read_text(encoding="utf-8"))
++
++
++def config_path(config: dict[str, Any], key: str, default: str) -> str:
++    paths = config.get("paths") or {}
++    return str(paths.get(key) or default)
++
++
+ def main(argv: list[str] | None = None) -> int:
+     argv = argv or sys.argv[1:]
+-    input_path = argv[0] if len(argv) >= 1 else "analysis.json"
+-    output_path = argv[1] if len(argv) >= 2 else "scores.json"
+-
+-    scorer = Scorer()
++    config = load_config()
++    input_path = argv[0] if len(argv) >= 1 else config_path(config, "analysis", "analysis.json")
++    output_path = argv[1] if len(argv) >= 2 else config_path(config, "scores", "scores.json")
++    scorer = Scorer(config.get("scoring_weights"))
+     repos = load_repos(input_path)
+     scored = scorer.score_many(repos)
+     save_scores(output_path, scored)
+diff --git a/tracker.py b/tracker.py
+index 7d83bf1..dea9d25 100644
+--- a/tracker.py
++++ b/tracker.py
+@@ -14,6 +14,11 @@ KNOWN_FILE = "known_competitors.json"
+ RAW_DIR = "raw_data"
+ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ 
++DEFAULT_PATHS = {
++    "known_competitors": KNOWN_FILE,
++    "raw_data_dir": RAW_DIR,
++}
++
+ DEFAULT_QUERIES = [
+     "code enhancement tool github stars:>30",
+     "code analysis tool cli stars:>30",
+@@ -51,6 +56,19 @@ def load_config():
+     return {}
+ 
+ 
++def resolve_path(path):
++    if os.path.isabs(path):
++        return path
++    return os.path.join(BASE_DIR, path)
++
++
++def get_paths(config):
++    configured = config.get("paths", {})
++    paths = dict(DEFAULT_PATHS)
++    paths.update({k: v for k, v in configured.items() if v})
++    return paths
++
++
+ def _api_get(url, token):
+     req = urllib.request.Request(url)
+     req.add_header("Accept", "application/vnd.github+json")
+@@ -69,21 +87,22 @@ def search_github(query, max_per_query, token):
+     return _api_get(url, token).get("items", [])
+ 
+ 
+-def load_known():
+-    path = os.path.join(BASE_DIR, KNOWN_FILE)
++def load_known(known_file):
++    path = resolve_path(known_file)
+     if os.path.exists(path):
+         with open(path, "r", encoding="utf-8") as f:
+             return json.load(f)
+     return {}
+ 
+ 
+-def save_known(data):
+-    path = os.path.join(BASE_DIR, KNOWN_FILE)
++def save_known(data, known_file):
++    path = resolve_path(known_file)
++    os.makedirs(os.path.dirname(path), exist_ok=True)
+     with open(path, "w", encoding="utf-8", errors="replace") as f:
+         json.dump(data, f, ensure_ascii=False, indent=2)
+ 
+ 
+-def download_readme(owner, repo):
++def download_readme(owner, repo, raw_data_dir):
+     readme_text = None
+     last_error = None
+     ctx = _ssl_context()
+@@ -101,7 +120,7 @@ def download_readme(owner, repo):
+     if readme_text is None:
+         raise RuntimeError(f"{last_error}" if last_error else "无 README")
+ 
+-    raw_dir = os.path.join(BASE_DIR, RAW_DIR)
++    raw_dir = resolve_path(raw_data_dir)
+     os.makedirs(raw_dir, exist_ok=True)
+     filename = f"{owner}_{repo}_README.md"
+     filepath = os.path.join(raw_dir, filename)
+@@ -125,6 +144,7 @@ def is_relevant(repo):
+ 
+ def main():
+     config = load_config()
++    paths = get_paths(config)
+ 
+     queries = config.get("search_queries", DEFAULT_QUERIES)
+     max_per_query = config.get("max_per_query", DEFAULT_MAX_PER_QUERY)
+@@ -132,7 +152,7 @@ def main():
+ 
+     token = config.get("github_token", "") or os.getenv("GITHUB_TOKEN") or ""
+ 
+-    known = load_known()
++    known = load_known(paths["known_competitors"])
+ 
+     all_items = []
+     for query in queries:
+@@ -176,7 +196,7 @@ def main():
+ 
+         owner, repo_name = full_name.split("/", 1)
+         try:
+-            readme_path = download_readme(owner, repo_name)
++            readme_path = download_readme(owner, repo_name, paths["raw_data_dir"])
+         except Exception as e:
+             print(f"[下载失败] {full_name}: {e}", file=sys.stderr)
+             continue
+@@ -194,11 +214,11 @@ def main():
+         print(f"[已下载] -> {readme_path}", file=sys.stderr)
+         new_count += 1
+ 
+-    save_known(known)
++    save_known(known, paths["known_competitors"])
+     total_known = len(known)
+     print(f"[统计] 已追踪 {total_known} 个仓库，其中 NEW={new_count}", file=sys.stderr)
+     print(new_count)
+ 
+ 
+ if __name__ == "__main__":
+-    main()
+\ No newline at end of file
++    main()
+diff --git a/visualizer.py b/visualizer.py
+index 059e875..dc4d2e2 100644
+--- a/visualizer.py
++++ b/visualizer.py
+@@ -6,8 +6,12 @@ import sys
+ from pathlib import Path
+ from typing import Any, Iterable
+ 
++import matplotlib
+ import matplotlib.pyplot as plt
+ 
++matplotlib.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "WenQuanYi Micro Hei", "DejaVu Sans"]
++matplotlib.rcParams["axes.unicode_minus"] = False
++
+ 
+ DIMENSIONS = ["attention", "tech_advancement", "setup_product", "ecosystem_openness"]
+ DIMENSION_LABELS = {
+@@ -27,6 +31,20 @@ def load_scores(path: str | Path) -> list[dict[str, Any]]:
+     return data
+ 
+ 
++def load_config(path: str | Path = "config.json") -> dict[str, Any]:
++    config_path = Path(path)
++    if not config_path.exists():
++        config_path = Path(__file__).with_name("config.json")
++    if not config_path.exists():
++        return {}
++    return json.loads(config_path.read_text(encoding="utf-8"))
++
++
++def config_path(config: dict[str, Any], key: str, default: str) -> str:
++    paths = config.get("paths") or {}
++    return str(paths.get(key) or default)
++
++
+ def _ensure_dir(path: str | Path) -> Path:
+     out = Path(path)
+     out.mkdir(parents=True, exist_ok=True)
+@@ -166,8 +184,9 @@ def generate_charts(scores_path: str | Path, output_dir: str | Path = "output")
+ 
+ def main(argv: list[str] | None = None) -> int:
+     argv = argv or sys.argv[1:]
+-    scores_path = argv[0] if len(argv) >= 1 else "scores.json"
+-    output_dir = argv[1] if len(argv) >= 2 else "output"
++    config = load_config()
++    scores_path = argv[0] if len(argv) >= 1 else config_path(config, "scores", "scores.json")
++    output_dir = argv[1] if len(argv) >= 2 else config_path(config, "output_dir", "output")
+     outputs = generate_charts(scores_path, output_dir)
+     for path in outputs:
+         print(path)
+diff --git "a/\346\226\207\346\241\243/codescope-visualizer\351\227\256\351\242\230\346\212\245\345\221\212.md" "b/\346\226\207\346\241\243/codescope-visualizer\351\227\256\351\242\230\346\212\245\345\221\212.md"
+index 75865fb..2b2b81b 100644
+--- "a/\346\226\207\346\241\243/codescope-visualizer\351\227\256\351\242\230\346\212\245\345\221\212.md"
++++ "b/\346\226\207\346\241\243/codescope-visualizer\351\227\256\351\242\230\346\212\245\345\221\212.md"
+@@ -40,3 +40,23 @@ matplotlib.rcParams["axes.unicode_minus"] = False
+ matplotlib>=3.7.0
+ ```
+ 安装命令：`pip install -r requirements.txt`
++
++---
++
++## 修复简要汇报
++
++已按问题报告完成修复：
++
++1. Radar 图维度不匹配问题已修复
++   - 将 `values = [_get_scores(item)[key] for key in DIMENSIONS[:-1]]` 改为使用完整 `DIMENSIONS`
++   - 现在雷达图的角度数量和分数数量一致
++
++2. 中文字体 Glyph 缺失警告已处理
++   - 在 `visualizer.py` 中添加 Matplotlib 中文字体配置
++   - 优先使用 `Microsoft YaHei`、`SimHei`、`WenQuanYi Micro Hei`
++   - 同时设置 `axes.unicode_minus = False`，避免负号显示异常
++
++3. 额外同步修复
++   - `visualizer.py` 默认读取 `scores.json`
++   - 默认输出目录统一为 `output/`
++   - 已通过 `python -m py_compile visualizer.py` 语法检查

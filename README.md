@@ -24,14 +24,15 @@ codescope/
 ├── engine.py              # 主控（四步流水线）
 ├── tracker.py             # 罗坚：搜索 + 下载 README
 ├── analyzer.py            # 罗坚：特征提取
-├── scorer.py              # 洪锋烨：五维评分
+├── scorer.py              # 洪锋烨：四维评分
 ├── visualizer.py          # 洪锋烨：Matplotlib 图表
 ├── config.json            # 搜索关键词 / Token / 上限
 │
-├── raw_data/              # 自动生成：下载的 README
-├── known_competitors.json # 自动生成：已追踪仓库
-├── analysis.json          # 自动生成：特征分析（→ 契约文件）
-├── scores.json            # 自动生成：评分结果
+├── data/                  # 自动生成：JSON 数据和下载的 README
+│   ├── raw_data/          # 自动生成：下载的 README
+│   ├── known_competitors.json
+│   ├── analysis.json      # 特征分析（→ 契约文件）
+│   └── scores.json        # 评分结果
 └── output/                # 自动生成：雷达图 / 散点图 / 柱状图
 ```
 
@@ -41,15 +42,15 @@ codescope/
 |:--:|------|------|:----:|
 | 1 | `tracker.py` | GitHub Search API 搜索 + 去重 + 下载 README | 罗坚 |
 | 2 | `analyzer.py` | 读 README，提取技术栈、产品形态、安装复杂度、文档完整度 | 罗坚 |
-| 3 | `scorer.py` | 五维评分：活跃度、技术先进性、文档完整度、接入门槛、生态开放性 | 洪锋烨 |
+| 3 | `scorer.py` | 四维评分：关注度、技术先进性、配置门槛与产品形态、生态开放性 | 洪锋烨 |
 | 4 | `visualizer.py` | 雷达图 + 散点图 + 柱状图 + 终端排名报告（Matplotlib） | 洪锋烨 |
 
 ```
-tracker ──→ known_competitors.json + raw_data/
+tracker ──→ data/known_competitors.json + data/raw_data/
     ↓
-analyzer ──→ analysis.json  ← 模块间唯一契约
+analyzer ──→ data/analysis.json  ← 模块间唯一契约
     ↓
-scorer ──→ scores.json
+scorer ──→ data/scores.json
     ↓
 visualizer ──→ output/*.png
 ```
@@ -66,6 +67,48 @@ visualizer ──→ output/*.png
 | `max_per_query` | 单次搜索返回上限（最大 100） |
 | `total_download_limit` | 本次最多下载几个新仓库 |
 | `github_token` | GitHub PAT（留空则尝试环境变量 `GITHUB_TOKEN`，再留空则未认证运行） |
+| `paths` | 生成文件路径，方便分类保存 JSON、README 和图表 |
+| `scoring_weights` | 评分权重，可按自己的偏好调整 |
+
+### 自定义文件路径
+
+CodeScope 默认把运行数据放到 `data/`，图表放到 `output/`。如果想换目录，只需要修改 `config.json`：
+
+```json
+"paths": {
+    "known_competitors": "data/known_competitors.json",
+    "raw_data_dir": "data/raw_data",
+    "analysis": "data/analysis.json",
+    "scores": "data/scores.json",
+    "output_dir": "output"
+}
+```
+
+这样 JSON、README、图表的路径都由配置统一管理，不需要修改脚本代码。
+
+### 自定义评分权重
+
+CodeScope 默认用四个维度给工具打分。用户可以直接修改 `config.json` 里的 `scoring_weights`，让排序更贴近自己的需求。
+
+```json
+"scoring_weights": {
+    "attention": 25,
+    "tech_advancement": 30,
+    "setup_product": 30,
+    "ecosystem_openness": 15
+}
+```
+
+字段含义：
+
+| 字段 | 含义 | 适合提高权重的场景 |
+|------|------|------|
+| `attention` | 关注度，主要看 stars 等热度指标 | 想优先找成熟、热门工具 |
+| `tech_advancement` | 技术先进性 | 想找新技术、Agent、RAG、插件化能力强的工具 |
+| `setup_product` | 配置门槛与产品形态 | 想找更容易安装、能直接使用的工具 |
+| `ecosystem_openness` | 生态开放性 | 想找方便扩展、二次开发、接入 API/SDK 的工具 |
+
+权重不要求加起来正好等于 `100`，程序会自动归一化。例如只关心易用性，可以把 `setup_product` 调高；只关心热门程度，可以把 `attention` 调高。
 
 ### Token 配置（推荐）
 

@@ -6,7 +6,11 @@ import sys
 from pathlib import Path
 from typing import Any, Iterable
 
+import matplotlib
 import matplotlib.pyplot as plt
+
+matplotlib.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "WenQuanYi Micro Hei", "DejaVu Sans"]
+matplotlib.rcParams["axes.unicode_minus"] = False
 
 
 DIMENSIONS = ["attention", "tech_advancement", "setup_product", "ecosystem_openness"]
@@ -25,6 +29,20 @@ def load_scores(path: str | Path) -> list[dict[str, Any]]:
     if not isinstance(data, list):
         raise ValueError("Expected a list of score records or an object containing items/scores/repos.")
     return data
+
+
+def load_config(path: str | Path = "config.json") -> dict[str, Any]:
+    config_path = Path(path)
+    if not config_path.exists():
+        config_path = Path(__file__).with_name("config.json")
+    if not config_path.exists():
+        return {}
+    return json.loads(config_path.read_text(encoding="utf-8"))
+
+
+def config_path(config: dict[str, Any], key: str, default: str) -> str:
+    paths = config.get("paths") or {}
+    return str(paths.get(key) or default)
 
 
 def _ensure_dir(path: str | Path) -> Path:
@@ -166,8 +184,9 @@ def generate_charts(scores_path: str | Path, output_dir: str | Path = "output") 
 
 def main(argv: list[str] | None = None) -> int:
     argv = argv or sys.argv[1:]
-    scores_path = argv[0] if len(argv) >= 1 else "scores.json"
-    output_dir = argv[1] if len(argv) >= 2 else "output"
+    config = load_config()
+    scores_path = argv[0] if len(argv) >= 1 else config_path(config, "scores", "scores.json")
+    output_dir = argv[1] if len(argv) >= 2 else config_path(config, "output_dir", "output")
     outputs = generate_charts(scores_path, output_dir)
     for path in outputs:
         print(path)

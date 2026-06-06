@@ -123,7 +123,7 @@ class Scorer:
       - README analysis output: feature flags / counts / textual hints
     """
 
-    WEIGHTS = {
+    DEFAULT_WEIGHTS = {
         "attention": 0.25,
         "tech_advancement": 0.30,
         "setup_product": 0.30,
@@ -133,6 +133,23 @@ class Scorer:
     STAR_SCALE = 50000
     FORK_SCALE = 10000
     ISSUE_SCALE = 5000
+
+    def __init__(self, weights: dict[str, Any] | None = None) -> None:
+        self.weights = self._normalize_weights(weights or self.DEFAULT_WEIGHTS)
+
+    def _normalize_weights(self, weights: dict[str, Any]) -> dict[str, float]:
+        cleaned = {}
+        for key, default in self.DEFAULT_WEIGHTS.items():
+            try:
+                value = float(weights.get(key, default))
+            except (TypeError, ValueError):
+                value = default
+            cleaned[key] = max(0.0, value)
+
+        total = sum(cleaned.values())
+        if total <= 0:
+            return dict(self.DEFAULT_WEIGHTS)
+        return {key: value / total for key, value in cleaned.items()}
 
     def score(self, repo: RepoInput | dict[str, Any]) -> dict[str, Any]:
         item = repo if isinstance(repo, RepoInput) else RepoInput.from_dict(repo)
@@ -157,10 +174,10 @@ class Scorer:
         setup_product = self._score_setup_product(repo)
         ecosystem_openness = self._score_ecosystem_openness(repo)
         overall = (
-            attention * self.WEIGHTS["attention"]
-            + tech_advancement * self.WEIGHTS["tech_advancement"]
-            + setup_product * self.WEIGHTS["setup_product"]
-            + ecosystem_openness * self.WEIGHTS["ecosystem_openness"]
+            attention * self.weights["attention"]
+            + tech_advancement * self.weights["tech_advancement"]
+            + setup_product * self.weights["setup_product"]
+            + ecosystem_openness * self.weights["ecosystem_openness"]
         )
         return ScoreBreakdown(attention, tech_advancement, setup_product, ecosystem_openness, overall)
 
@@ -301,12 +318,26 @@ def save_scores(path: str | Path, payload: list[dict[str, Any]]) -> None:
     Path(path).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def load_config(path: str | Path = "config.json") -> dict[str, Any]:
+    config_path = Path(path)
+    if not config_path.exists():
+        config_path = Path(__file__).with_name("config.json")
+    if not config_path.exists():
+        return {}
+    return json.loads(config_path.read_text(encoding="utf-8"))
+
+
+def config_path(config: dict[str, Any], key: str, default: str) -> str:
+    paths = config.get("paths") or {}
+    return str(paths.get(key) or default)
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = argv or sys.argv[1:]
-    input_path = argv[0] if len(argv) >= 1 else "analysis.json"
-    output_path = argv[1] if len(argv) >= 2 else "scores.json"
-
-    scorer = Scorer()
+    config = load_config()
+    input_path = argv[0] if len(argv) >= 1 else config_path(config, "analysis", "analysis.json")
+    output_path = argv[1] if len(argv) >= 2 else config_path(config, "scores", "scores.json")
+    scorer = Scorer(config.get("scoring_weights"))
     repos = load_repos(input_path)
     scored = scorer.score_many(repos)
     save_scores(output_path, scored)
