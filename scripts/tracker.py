@@ -13,6 +13,7 @@ CONFIG_FILE = "config.json"
 KNOWN_FILE = "known_competitors.json"
 RAW_DIR = "raw_data"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(BASE_DIR)
 
 DEFAULT_PATHS = {
     "known_competitors": KNOWN_FILE,
@@ -49,7 +50,7 @@ def _ssl_context():
 
 
 def load_config():
-    path = os.path.join(BASE_DIR, CONFIG_FILE)
+    path = os.path.join(PROJECT_DIR, CONFIG_FILE)
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -59,7 +60,7 @@ def load_config():
 def resolve_path(path):
     if os.path.isabs(path):
         return path
-    return os.path.join(BASE_DIR, path)
+    return os.path.join(PROJECT_DIR, path)
 
 
 def get_paths(config):
@@ -209,7 +210,7 @@ def main():
             "updated_at": repo.get("updated_at", ""),
             "language": repo.get("language", ""),
             "description": repo.get("description", ""),
-            "readme_path": os.path.relpath(readme_path, BASE_DIR),
+            "readme_path": os.path.relpath(readme_path, PROJECT_DIR),
         }
         print(f"[已下载] -> {readme_path}", file=sys.stderr)
         new_count += 1

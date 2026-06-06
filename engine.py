@@ -6,31 +6,32 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SCRIPTS_DIR = os.path.join(BASE_DIR, "scripts")
 
 STEPS = [
     {
         "name": "tracker",
-        "script": "tracker.py",
+        "script": os.path.join("scripts", "tracker.py"),
         "description": "GitHub API 搜索 + 下载 README",
         "args": [],
     },
     {
         "name": "analyzer",
-        "script": "analyzer.py",
+        "script": os.path.join("scripts", "analyzer.py"),
         "description": "从 README 提取特征：技术栈、产品形态、安装复杂度",
         "args": [],
     },
     {
         "name": "scorer",
-        "script": "scorer.py",
-        "description": "五维评分：活跃度、技术先进性、文档完整度、接入门槛、生态开放性",
-        "args": ["analysis.json", "scores.json"],
+        "script": os.path.join("scripts", "scorer.py"),
+        "description": "四维评分：关注度、技术先进性、配置门槛与产品形态、生态开放性",
+        "args": [],
     },
     {
         "name": "visualizer",
-        "script": "visualizer.py",
+        "script": os.path.join("scripts", "visualizer.py"),
         "description": "输出雷达图 + 散点图 + 柱状图 + 终端排名报告",
-        "args": ["scores.json", "output"],
+        "args": [],
         "non_fatal": True,
         "fail_hint": "matplotlib 未安装，跳过图表生成",
     },
@@ -99,10 +100,10 @@ def main():
     print(f"{'=' * 60}")
     print()
     print("  产出文件：")
-    print("    known_competitors.json  — 已追踪仓库清单")
-    print("    raw_data/                — 下载的 README 文件")
-    print("    analysis.json            — 特征分析结果")
-    print("    scores.json              — 评分排序结果")
+    print("    data/known_competitors.json  — 已追踪仓库清单")
+    print("    data/raw_data/               — 下载的 README 文件")
+    print("    data/analysis.json           — 特征分析结果")
+    print("    data/scores.json             — 评分排序结果")
     print("    output/*.png             — 4 张 Matplotlib 图表")
     print()
 

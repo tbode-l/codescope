@@ -7,6 +7,7 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(BASE_DIR)
 CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
 
 DEFAULT_PATHS = {
@@ -52,8 +53,9 @@ INSTALL_COMPLEXITY_PATTERNS = [
 
 
 def load_config():
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+    root_config = os.path.join(PROJECT_DIR, "config.json")
+    if os.path.exists(root_config):
+        with open(root_config, "r", encoding="utf-8") as f:
             return json.load(f)
     return {}
 
@@ -61,7 +63,7 @@ def load_config():
 def resolve_path(path):
     if os.path.isabs(path):
         return path
-    return os.path.join(BASE_DIR, path)
+    return os.path.join(PROJECT_DIR, path)
 
 
 def get_paths(config):
@@ -80,7 +82,7 @@ def load_known(known_file):
 
 
 def read_readme(readme_path):
-    full_path = os.path.join(BASE_DIR, readme_path)
+    full_path = readme_path if os.path.isabs(readme_path) else os.path.join(PROJECT_DIR, readme_path)
     if not os.path.exists(full_path):
         return ""
     with open(full_path, "r", encoding="utf-8", errors="ignore") as f:

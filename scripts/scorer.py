@@ -323,6 +323,8 @@ def load_config(path: str | Path = "config.json") -> dict[str, Any]:
     if not config_path.exists():
         config_path = Path(__file__).with_name("config.json")
     if not config_path.exists():
+        config_path = Path(__file__).resolve().parent.parent / "config.json"
+    if not config_path.exists():
         return {}
     return json.loads(config_path.read_text(encoding="utf-8"))
 
@@ -332,11 +334,18 @@ def config_path(config: dict[str, Any], key: str, default: str) -> str:
     return str(paths.get(key) or default)
 
 
+def resolve_project_path(path: str | Path) -> str:
+    p = Path(path)
+    if p.is_absolute():
+        return str(p)
+    return str(Path(__file__).resolve().parent.parent / p)
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = argv or sys.argv[1:]
     config = load_config()
-    input_path = argv[0] if len(argv) >= 1 else config_path(config, "analysis", "analysis.json")
-    output_path = argv[1] if len(argv) >= 2 else config_path(config, "scores", "scores.json")
+    input_path = resolve_project_path(argv[0]) if len(argv) >= 1 else resolve_project_path(config_path(config, "analysis", "data/analysis.json"))
+    output_path = resolve_project_path(argv[1]) if len(argv) >= 2 else resolve_project_path(config_path(config, "scores", "data/scores.json"))
     scorer = Scorer(config.get("scoring_weights"))
     repos = load_repos(input_path)
     scored = scorer.score_many(repos)

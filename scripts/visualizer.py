@@ -36,6 +36,8 @@ def load_config(path: str | Path = "config.json") -> dict[str, Any]:
     if not config_path.exists():
         config_path = Path(__file__).with_name("config.json")
     if not config_path.exists():
+        config_path = Path(__file__).resolve().parent.parent / "config.json"
+    if not config_path.exists():
         return {}
     return json.loads(config_path.read_text(encoding="utf-8"))
 
@@ -43,6 +45,13 @@ def load_config(path: str | Path = "config.json") -> dict[str, Any]:
 def config_path(config: dict[str, Any], key: str, default: str) -> str:
     paths = config.get("paths") or {}
     return str(paths.get(key) or default)
+
+
+def resolve_project_path(path: str | Path) -> Path:
+    p = Path(path)
+    if p.is_absolute():
+        return p
+    return Path(__file__).resolve().parent.parent / p
 
 
 def _ensure_dir(path: str | Path) -> Path:
@@ -171,8 +180,8 @@ def plot_radar(items: list[dict[str, Any]], output: Path) -> Path:
 
 
 def generate_charts(scores_path: str | Path, output_dir: str | Path = "output") -> list[Path]:
-    items = _sorted_items(load_scores(scores_path))
-    out_dir = _ensure_dir(output_dir)
+    items = _sorted_items(load_scores(resolve_project_path(scores_path)))
+    out_dir = _ensure_dir(resolve_project_path(output_dir))
     outputs = [
         plot_bar_chart(items, out_dir / "top_scores_bar.png"),
         plot_scatter(items, out_dir / "setup_vs_total_scatter.png"),
@@ -185,8 +194,8 @@ def generate_charts(scores_path: str | Path, output_dir: str | Path = "output") 
 def main(argv: list[str] | None = None) -> int:
     argv = argv or sys.argv[1:]
     config = load_config()
-    scores_path = argv[0] if len(argv) >= 1 else config_path(config, "scores", "scores.json")
-    output_dir = argv[1] if len(argv) >= 2 else config_path(config, "output_dir", "output")
+    scores_path = resolve_project_path(argv[0]) if len(argv) >= 1 else resolve_project_path(config_path(config, "scores", "data/scores.json"))
+    output_dir = resolve_project_path(argv[1]) if len(argv) >= 2 else resolve_project_path(config_path(config, "output_dir", "output"))
     outputs = generate_charts(scores_path, output_dir)
     for path in outputs:
         print(path)

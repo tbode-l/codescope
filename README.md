@@ -22,10 +22,11 @@ python engine.py
 ```
 codescope/
 ├── engine.py              # 主控（四步流水线）
-├── tracker.py             # 罗坚：搜索 + 下载 README
-├── analyzer.py            # 罗坚：特征提取
-├── scorer.py              # 洪锋烨：四维评分
-├── visualizer.py          # 洪锋烨：Matplotlib 图表
+├── scripts/               # 实现脚本
+│   ├── tracker.py         # 罗坚：搜索 + 下载 README
+│   ├── analyzer.py        # 罗坚：特征提取
+│   ├── scorer.py          # 洪锋烨：四维评分
+│   └── visualizer.py      # 洪锋烨：Matplotlib 图表
 ├── config.json            # 搜索关键词 / Token / 上限
 │
 ├── data/                  # 自动生成：JSON 数据和下载的 README
@@ -35,6 +36,8 @@ codescope/
 │   └── scores.json        # 评分结果
 └── output/                # 自动生成：雷达图 / 散点图 / 柱状图
 ```
+
+> 根目录保留 `engine.py` 作为唯一入口，实际实现脚本放在 `scripts/` 下。
 
 ## 流水线
 
@@ -54,8 +57,6 @@ scorer ──→ data/scores.json
     ↓
 visualizer ──→ output/*.png
 ```
-
-> scorer / visualizer 尚在开发中，未实现时 engine 会自动跳过并提示。
 
 ## 配置文件
 
@@ -124,10 +125,10 @@ CodeScope 默认用四个维度给工具打分。用户可以直接修改 `confi
 ## 单独运行
 
 ```powershell
-python tracker.py      # 仅搜索下载
-python analyzer.py     # 仅分析（需先跑 tracker）
-python scorer.py       # 仅评分  （需先跑 analyzer）
-python visualizer.py   # 仅出图  （需先跑 scorer）
+python scripts/tracker.py      # 仅搜索下载
+python scripts/analyzer.py     # 仅分析（需先跑 tracker）
+python scripts/scorer.py       # 仅评分  （需先跑 analyzer）
+python scripts/visualizer.py   # 仅出图  （需先跑 scorer）
 ```
 
 ## 分工
