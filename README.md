@@ -63,10 +63,10 @@ output/                    # 图表输出目录（gitignore）
 
 | 步骤 | 模块 | 职责 | 负责人 | 输入 | 输出 |
 |:----:|------|------|:------:|------|------|
-| 1 | `tracker.py` | GitHub Search API 搜索 → 去重 → 下载 README | 罗坚 | config.json | data/known_competitors.json + data/raw_data/ |
-| 2 | `analyzer.py` | 读取 README，提取特征 | 罗坚 | data/known_competitors.json + data/raw_data/ | data/analysis.json |
-| 3 | `scorer.py` | 四维评分，可自定义权重 | 洪锋烨 | data/analysis.json | data/scores.json |
-| 4 | `visualizer.py` | 生成 4 张图表 + 终端报告 | 洪锋烨 | data/scores.json | output/*.png |
+| 1 | `tracker.py` | GitHub Search API 搜索 → 去重 → 下载 README | [@tbode-l](https://github.com/tbode-l) | config.json | data/known_competitors.json + data/raw_data/ |
+| 2 | `analyzer.py` | 读取 README，提取特征 | [@tbode-l](https://github.com/tbode-l) | data/known_competitors.json + data/raw_data/ | data/analysis.json |
+| 3 | `scorer.py` | 四维评分，可自定义权重 | [@hfycium](https://github.com/hfycium) | data/analysis.json | data/scores.json |
+| 4 | `visualizer.py` | 生成 4 张图表 + 终端报告 | [@hfycium](https://github.com/hfycium) | data/scores.json | output/*.png |
 
 ```mermaid
 graph LR
@@ -190,14 +190,11 @@ graph LR
 
 | 成员 | 负责模块 |
 |------|----------|
-| 罗坚 | tracker.py + analyzer.py + engine.py + 论文全文 |
-| 洪锋烨 | scorer.py + visualizer.py + PPT |
+| [@tbode-l](https://github.com/tbode-l) | tracker.py + analyzer.py + engine.py + 论文全文 |
+| [@hfycium](https://github.com/hfycium) | scorer.py + visualizer.py + PPT |
 
 ---
 
-## 相关文档
+## 许可证
 
-- [产品设计](文档/py作业总体规划.md)
-- [接口契约](文档/codescope-接口契约.md)
-- [评分规则](文档/评分规则.md)
-- [visualizer问题报告](文档/codescope-visualizer问题报告.md)
+[MIT](LICENSE) © 2026 CodeScope Authors

@@ -3,6 +3,7 @@ __pycache__/
 charts/
 output/
 raw_data/
+文档/
 data/scores.json
 data/known_competitors.json
 data/analysis.json
